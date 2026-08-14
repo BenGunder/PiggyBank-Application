@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: finance-tracker-backend
+    ports:
+      - "8001:8001"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/finance_tracker
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-this-in-production}
+      - CORS_ORIGINS=${CORS_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      - ENVIRONMENT=production
+    volumes:
+      - ./backend:/app
+      - ./backend/data:/app/data
+    depends_on:
+      - db
+    networks:
+      - finance-tracker-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: finance-tracker-frontend
+    ports:
+      - "3000:80"
+    environment:
+      - VITE_API_URL=http://localhost:8001/api
+    depends_on:
+      - backend
+    networks:
+      - finance-tracker-network
+
+  db:
+    image: postgres:15-alpine
+    container_name: finance-tracker-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=finance_tracker
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - finance-tracker-network
+
+volumes:
+  postgres_data:
+
+networks:
+  finance-tracker-network:
+    driver: bridge
